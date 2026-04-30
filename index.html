@@ -17,18 +17,30 @@
             <h1 class="text-2xl font-bold">韓國代付報價系統</h1>
         </div>
 
-        <div class="p-6 space-y-5">
-            <!-- 累計開關 -->
-            <div class="flex items-center justify-between bg-orange-50 p-3 rounded-lg border border-orange-100">
-                <span class="text-sm font-bold text-orange-700">今日累計已滿 10 萬韓幣？</span>
-                <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                    <input type="checkbox" name="toggle" id="accumulated-check" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" onchange="calculate()"/>
-                    <label for="accumulated-check" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+        <div class="p-6 space-y-4">
+            <!-- 開關區 -->
+            <div class="space-y-2">
+                <!-- 10萬開關 -->
+                <div class="flex items-center justify-between bg-orange-50 p-3 rounded-lg border border-orange-100">
+                    <span class="text-sm font-bold text-orange-700">今日累計已滿 10 萬韓幣？</span>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle" id="accumulated-check" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" onchange="calculate()"/>
+                        <label for="accumulated-check" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+
+                <!-- 代下單開關 -->
+                <div class="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
+                    <span class="text-sm font-bold text-blue-700">需代下單？(+30元)</span>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle" id="order-check" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" onchange="calculate()"/>
+                        <label for="order-check" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
                 </div>
             </div>
 
             <!-- 輸入項目 -->
-            <div class="space-y-4">
+            <div class="space-y-4 pt-2">
                 <div class="bg-indigo-50 p-4 rounded-xl">
                     <label class="block text-sm font-bold text-indigo-700 mb-2">本次代付金額 (KRW)</label>
                     <input type="number" id="krw-amount" placeholder="請輸入韓幣金額" 
@@ -75,23 +87,25 @@
             const krw = parseFloat(document.getElementById('krw-amount').value) || 0;
             const cRate = parseFloat(document.getElementById('customer-rate-input').value) || 1;
             const costRate = parseFloat(document.getElementById('cost-rate-input').value) || 1;
+            
             const isAccumulated = document.getElementById('accumulated-check').checked;
+            const isOrder = document.getElementById('order-check').checked;
 
-            const baseFee = 30;
             let lowAmountFee = 0;
+            let orderFee = 0;
 
-            // 只有在「未勾選已滿十萬」且「金額小於十萬」時才計算 50 元手續費
+            // 判斷 50 元 (未滿十萬)
             if (!isAccumulated && krw > 0 && krw < 100000) {
                 lowAmountFee = 50;
             }
 
-            // 基礎金額四捨五入
+            // 判斷 30 元 (代下單)
+            if (isOrder) {
+                orderFee = 30;
+            }
+
             const convertedAmount = Math.round(krw / cRate);
-            
-            // 總額四捨五入
-            const totalReceive = krw > 0 ? (convertedAmount + baseFee + lowAmountFee) : 0;
-            
-            // 成本與利潤四捨五入
+            const totalReceive = krw > 0 ? (convertedAmount + orderFee + lowAmountFee) : 0;
             const cost = krw > 0 ? Math.round(krw / costRate) : 0;
             const profit = totalReceive > 0 ? (totalReceive - cost) : 0;
 
@@ -99,7 +113,7 @@
             document.getElementById('profit-tag').innerText = `利潤: $${profit.toLocaleString()}`;
 
             return {
-                krw, cRate, convertedAmount, lowAmountFee, totalReceive, isAccumulated
+                krw, cRate, convertedAmount, lowAmountFee, orderFee, totalReceive, isAccumulated, isOrder
             };
         }
 
@@ -110,16 +124,19 @@
                 return;
             }
 
-            // 組合訊息字串
             let message = `${res.krw} / ${res.cRate} = ${res.convertedAmount}\n`;
-            message += `+代付手續費30元\n`;
             
-            // 如果沒勾選已滿十萬且金額低於十萬，才顯示 50 元那行
+            // 如果開關打開才顯示代下單
+            if (res.isOrder) {
+                message += `+代付手續費30元\n`;
+            }
+            
+            // 如果符合條件才顯示 50 元
             if (!res.isAccumulated && res.krw < 100000) {
                 message += `+單日未滿10萬手續費50元\n`;
             }
             
-            message += `\n💰要跟客人收的金額：${res.totalReceive}元`;
+            message += `\n💰${res.totalReceive}元`;
 
             const tempArea = document.createElement('textarea');
             tempArea.value = message;
