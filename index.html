@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>韓國代付計算器 PRO</title>
+    <title>韓國代付計算器</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -13,13 +13,12 @@
 </head>
 <body class="bg-slate-100 min-h-screen py-8 px-4 font-sans">
     <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-        <!-- 標題區 -->
         <div class="bg-indigo-600 p-6 text-white text-center">
             <h1 class="text-2xl font-bold">韓國代付報價系統</h1>
         </div>
 
         <div class="p-6 space-y-5">
-            <!-- 1. 累計狀態開關 -->
+            <!-- 累計開關 -->
             <div class="flex items-center justify-between bg-orange-50 p-3 rounded-lg border border-orange-100">
                 <span class="text-sm font-bold text-orange-700">今日累計已滿 10 萬韓幣？</span>
                 <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
@@ -28,7 +27,7 @@
                 </div>
             </div>
 
-            <!-- 2. 輸入項目 -->
+            <!-- 輸入項目 -->
             <div class="space-y-4">
                 <div class="bg-indigo-50 p-4 rounded-xl">
                     <label class="block text-sm font-bold text-indigo-700 mb-2">本次代付金額 (KRW)</label>
@@ -40,96 +39,94 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div class="p-3 border border-gray-200 rounded-xl">
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-1">今日代付匯率</label>
-                        <input type="number" id="customer-rate" value="40.5" step="0.01" class="w-full text-lg font-bold text-indigo-600 focus:outline-none" oninput="calculate()">
+                        <input type="number" id="customer-rate-input" value="43.5" step="0.1" class="w-full text-lg font-bold text-indigo-600 focus:outline-none" oninput="calculate()">
                     </div>
-                    <div class="p-3 border border-gray-200 rounded-xl">
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">換錢成本匯率</label>
-                        <input type="number" id="cost-rate" value="41.2" step="0.01" class="w-full text-lg font-bold text-gray-600 focus:outline-none" oninput="calculate()">
+                    <div class="p-3 border border-gray-200 rounded-xl bg-gray-50">
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">成本匯率(利潤用)</label>
+                        <input type="number" id="cost-rate-input" value="44.2" step="0.1" class="w-full text-lg font-bold text-gray-600 focus:outline-none" oninput="calculate()">
                     </div>
                 </div>
             </div>
 
             <hr class="border-gray-100">
 
-            <!-- 3. 結果顯示 -->
-            <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100 relative">
+            <!-- 結果顯示區 -->
+            <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100">
                 <div class="flex justify-between items-start">
                     <span class="text-gray-500 font-medium">應收總額 (TWD)</span>
                     <div class="text-right">
                         <div class="text-3xl font-black text-red-500">$ <span id="total-receive">0</span></div>
-                        <div id="profit-tag" class="text-xs text-emerald-600 font-bold mt-1">預估利潤: $0</div>
+                        <div id="profit-tag" class="text-xs text-emerald-600 font-bold mt-1">利潤: $0</div>
                     </div>
                 </div>
                 
-                <!-- 一鍵複製按鈕 -->
                 <button onclick="copyToClipboard()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-lg active:transform active:scale-95 flex items-center justify-center gap-2">
-                    <span>📋 一鍵複製報價明細</span>
+                    📋 一鍵複製報價公式
                 </button>
-            </div>
-
-            <!-- 4. 費用明細說明 -->
-            <div class="text-[11px] text-gray-400 leading-relaxed px-2">
-                * 固定手續費: 30元/單<br>
-                * 單日未滿10萬韓幣加收: 50元 (若今日累計已達標則不收)
             </div>
         </div>
     </div>
 
-    <!-- 複製成功提示 -->
-    <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-black text-white px-6 py-2 rounded-full text-sm opacity-0 transition-opacity pointer-events-none">已複製到剪貼簿</div>
+    <!-- 提示框 -->
+    <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-black text-white px-6 py-2 rounded-full text-sm opacity-0 transition-opacity duration-300 pointer-events-none">已複製報價公式</div>
 
     <script>
         function calculate() {
             const krw = parseFloat(document.getElementById('krw-amount').value) || 0;
-            const customerRate = parseFloat(document.getElementById('customer-rate').value) || 1;
-            const costRate = parseFloat(document.getElementById('cost-rate').value) || 1;
+            const cRate = parseFloat(document.getElementById('customer-rate-input').value) || 1;
+            const costRate = parseFloat(document.getElementById('cost-rate-input').value) || 1;
             const isAccumulated = document.getElementById('accumulated-check').checked;
 
             const baseFee = 30;
             let lowAmountFee = 0;
 
-            // 判斷是否要收 50 元：
-            // 如果沒勾選「累計滿十萬」且金額小於 100,000 才收
+            // 只有在「未勾選已滿十萬」且「金額小於十萬」時才計算 50 元手續費
             if (!isAccumulated && krw > 0 && krw < 100000) {
                 lowAmountFee = 50;
             }
 
-            const totalReceive = krw > 0 ? (krw / customerRate) + baseFee + lowAmountFee : 0;
-            const cost = krw > 0 ? (krw / costRate) : 0;
+            // 基礎金額四捨五入
+            const convertedAmount = Math.round(krw / cRate);
+            
+            // 總額四捨五入
+            const totalReceive = krw > 0 ? (convertedAmount + baseFee + lowAmountFee) : 0;
+            
+            // 成本與利潤四捨五入
+            const cost = krw > 0 ? Math.round(krw / costRate) : 0;
             const profit = totalReceive > 0 ? (totalReceive - cost) : 0;
 
-            document.getElementById('total-receive').innerText = Math.ceil(totalReceive).toLocaleString();
-            document.getElementById('profit-tag').innerText = `預估利潤: $${Math.round(profit).toLocaleString()}`;
+            document.getElementById('total-receive').innerText = totalReceive.toLocaleString();
+            document.getElementById('profit-tag').innerText = `利潤: $${profit.toLocaleString()}`;
 
             return {
-                krw, customerRate, baseFee, lowAmountFee, totalReceive: Math.ceil(totalReceive)
+                krw, cRate, convertedAmount, lowAmountFee, totalReceive, isAccumulated
             };
         }
 
         function copyToClipboard() {
-            const data = calculate();
-            if (data.krw <= 0) {
-                alert("請先輸入韓幣金額");
+            const res = calculate();
+            if (res.krw <= 0) {
+                alert("請先輸入金額");
                 return;
             }
 
-            let extraFeeText = data.lowAmountFee > 0 ? `\n+單日未滿10萬手續費50元` : "";
+            // 組合訊息字串
+            let message = `${res.krw} / ${res.cRate} = ${res.convertedAmount}\n`;
+            message += `+代付手續費30元\n`;
             
-            const text = `代付報價明細：
-------------------------
-代付金額：${data.krw.toLocaleString()} KRW
-今日匯率：${data.customer-rate}
-計算方式：${data.krw.toLocaleString()} / ${data.customer-rate} = ${Math.ceil(data.krw/data.customer-rate).toLocaleString()}元
-+代付手續費30元${extraFeeText}
-------------------------
-💰要跟客人收的金額：${data.totalReceive.toLocaleString()}元`;
+            // 如果沒勾選已滿十萬且金額低於十萬，才顯示 50 元那行
+            if (!res.isAccumulated && res.krw < 100000) {
+                message += `+單日未滿10萬手續費50元\n`;
+            }
+            
+            message += `\n💰要跟客人收的金額：${res.totalReceive}元`;
 
-            const el = document.createElement('textarea');
-            el.value = text;
-            document.body.appendChild(el);
-            el.select();
+            const tempArea = document.createElement('textarea');
+            tempArea.value = message;
+            document.body.appendChild(tempArea);
+            tempArea.select();
             document.execCommand('copy');
-            document.body.removeChild(el);
+            document.body.removeChild(tempArea);
 
             const toast = document.getElementById('toast');
             toast.style.opacity = '1';
