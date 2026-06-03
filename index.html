@@ -94,8 +94,8 @@
             let lowAmountFee = 0;
             let orderFee = 0;
 
-            // 判斷 50 元 (未滿十萬)
-            if (!isAccumulated && krw > 0 && krw < 100000) {
+            // 判斷 50 元 (十萬內)
+            if (!isAccumulated && krw > 0 && krw < 100001) {
                 lowAmountFee = 50;
             }
 
@@ -132,8 +132,8 @@
             }
             
             // 如果符合條件才顯示 50 元
-            if (!res.isAccumulated && res.krw < 100000) {
-                message += `+單日未滿10萬手續費50元\n`;
+            if (!res.isAccumulated && res.krw < 100001) {
+                message += `+單日10萬內手續費50元\n`;
             }
             
             message += `\n💰${res.totalReceive}元`;
